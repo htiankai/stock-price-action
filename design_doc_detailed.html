@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股价格行为分析系统 - 详细设计</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; 
+            max-width: 1300px; 
+            margin: 0 auto; 
+            padding: 30px 20px; 
+            line-height: 1.7; 
+            color: #333;
+            background: #fafbfc;
+        }
+        h1 { color: #1a1a2e; border-bottom: 3px solid #16213e; padding-bottom: 12px; margin-bottom: 25px; font-size: 26px; }
+        h2 { color: #16213e; border-left: 5px solid #0f3460; padding-left: 15px; margin: 30px 0 15px; font-size: 20px; }
+        h3 { color: #0f3460; margin: 20px 0 12px; font-size: 16px; }
+        h4 { color: #1a1a2e; margin: 0 0 10px 0; font-size: 15px; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; font-size: 14px; }
+        th { background-color: #0f3460; color: white; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #f0f4ff; }
+        
+        /* 彩色表格 */
+        table.info th { background-color: #17a2b8; }
+        table.success th { background-color: #28a745; }
+        table.warning th { background-color: #ffc107; }
+        table.danger th { background-color: #dc3545; }
+        table.purple th { background-color: #6f42c1; }
+        
+        /* 彩色盒子 */
+        .info-box { background: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8; margin: 15px 0; }
+        .success-box { background: #d4edda; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745; margin: 15px 0; }
+        .warning-box { background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 15px 0; }
+        .danger-box { background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545; margin: 15px 0; }
+        .purple-box { background: #e2d9f3; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1; margin: 15px 0; }
+        .note-box { background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 15px 0; }
+        
+        /* 渐变盒子 */
+        .layer-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; border-radius: 10px; }
+        .layer-box.light { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .layer-box.green { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .layer-box.warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        
+        .layout-grid { display: grid; gap: 15px; margin: 15px 0; }
+        .architecture-diagram { display: flex; flex-direction: column; gap: 12px; margin: 15px 0; }
+        
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: "Consolas", monospace; font-size: 12px; }
+        pre { background: #f8f8f8; color: #333; padding: 15px; border-radius: 6px; overflow-x: auto; margin: 15px 0; font-size: 13px; border: 1px solid #e0e0e0; }
+        
+        .component { background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 6px; font-size: 13px; }
+        .footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 13px; }
+        ul { padding-left: 20px; margin: 5px 0; }
+        li { margin: 5px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<h1>A股价格行为分析系统 - 详细设计</h1>
+
+<div class="success-box">
+    <h3 style="margin-top: 0;">文档说明</h3>
+    <p>本文档是 <code>design_doc.html</code> 的详细扩展，包含每个模块的具体实现规格、接口定义和数据结构。</p>
+</div>
+
+<h2>1. 数据采集模块 (Data Layer)</h2>
+
+<h3>1.1 数据源配置</h3>
+
+<table class="info">
+    <thead>
+        <tr><th>数据源</th><th>API</th><th>数据内容</th><th>限制</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>AKShare</td><td><code>akshare</code></td><td>实时行情/K线/分时</td><td>免费，频率限制</td></tr>
+        <tr><td>东方财富</td><td><code>eastmoney</code></td><td>实时行情</td><td>备用数据源</td></tr>
+        <tr><td>Tushare</td><td><code>tushare</code></td><td>财务数据</td><td>需注册token</td></tr>
+    </tbody>
+</table>
+
+<h3>1.2 股票代码格式</h3>
+
+<div class="info-box">
+    <ul style="margin: 0;">
+        <li><strong>A股主板/创业板:</strong> <code>000001</code> (6位数字)</li>
+        <li><strong>上海:</strong> <code>600xxx</code>, <code>601xxx</code>, <code>688xxx</code> (科创板)</li>
+        <li><strong>深圳:</strong> <code>000xxx</code>, <code>001xxx</code>, <code>002xxx</code> (中小板), <code>300xxx</code> (创业板)</li>
+    </ul>
+</div>
+
+<h3>1.3 数据模型</h3>
+
+<table class="success">
+    <thead>
+        <tr><th>模型</th><th>字段</th><th>类型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+        <tr><td rowspan="8">Kline</td><td>code</td><td>string</td><td>股票代码</td></tr>
+        <tr><td>name</td><td>string</td><td>股票名称</td></tr>
+        <tr><td>timestamp</td><td>datetime</td><td>时间戳</td></tr>
+        <tr><td>open</td><td>float</td><td>开盘价</td></tr>
+        <tr><td>high</td><td>float</td><td>最高价</td></tr>
+        <tr><td>low</td><td>float</td><td>最低价</td></tr>
+        <tr><td>close</td><td>float</td><td>收盘价</td></tr>
+        <tr><td>volume</td><td>float</td><td>成交量</td></tr>
+        <tr><td rowspan="7">Quote</td><td>code</td><td>string</td><td>股票代码</td></tr>
+        <tr><td>name</td><td>string</td><td>股票名称</td></tr>
+        <tr><td>price</td><td>float</td><td>当前价</td></tr>
+        <tr><td>change_pct</td><td>float</td><td>涨跌幅(%)</td></tr>
+        <tr><td>volume</td><td>float</td><td>成交量</td></tr>
+        <tr><td>high</td><td>float</td><td>最高价</td></tr>
+        <tr><td>low</td><td>float</td><td>最低价</td></tr>
+    </tbody>
+</table>
+
+<h3>1.4 缓存策略</h3>
+
+<div class="warning-box">
+    <h4 style="margin: 0 0 10px 0;">缓存机制</h4>
+    <ul style="margin: 0;">
+        <li><strong>实时行情:</strong> 内存缓存，TTL=3秒</li>
+        <li><strong>K线数据:</strong> 本地文件缓存，按股票代码组织</li>
+        <li><strong>缓存目录:</strong> <code>./data/cache/kline/{code}_{period}.parquet</code></li>
+    </ul>
+</div>
+
+<div class="layout-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="info-box">
+        <h4 style="margin: 0 0 8px 0;">AKShare 核心接口</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li><code>ak.stock_zh_a_spot_em()</code> - 全量实时行情</li>
+            <li><code>ak.stock_zh_a_hist()</code> - K线历史数据</li>
+            <li><code>ak.stock_zh_a_minute()</code> - 分时数据</li>
+        </ul>
+    </div>
+    <div class="purple-box">
+        <h4 style="margin: 0 0 8px 0;">数据更新频率</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li>实时行情: 3-5秒轮询</li>
+            <li>K线数据: 收盘后更新</li>
+            <li>分时数据: 交易时段</li>
+        </ul>
+    </div>
+</div>
+
+<h2>2. 分析引擎模块 (Analysis Engine)</h2>
+
+<h3>2.1 支撑阻力位算法</h3>
+
+<table class="success">
+    <thead>
+        <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>window</td><td>20</td><td>局部高低点窗口大小</td></tr>
+        <tr><td>min_touches</td><td>2</td><td>最小触碰次数</td></tr>
+        <tr><td>volume_threshold</td><td>1.5</td><td>成交量放大倍数</td></tr>
+    </tbody>
+</table>
+
+<div class="info-box">
+    <h4 style="margin: 0 0 8px 0;">算法流程</h4>
+    <ol style="margin: 0; font-size: 13px;">
+        <li>计算 <code>window</code> 周期内的局部最高价/最低价</li>
+        <li>筛选触碰次数 ≥ <code>min_touches</code> 的价格水平</li>
+        <li>结合成交量确认支撑/阻力强度</li>
+        <li>输出按强度排序的价格列表</li>
+    </ol>
+</div>
+
+<h3>2.2 趋势线算法</h3>
+
+<table class="info">
+    <thead>
+        <tr><th>类型</th><th>算法</th><th>输出</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>上升趋势线</td><td>连接 ≥ 3 个逐步抬升的低点</td><td>斜率、角度、方程</td></tr>
+        <tr><td>下降趋势线</td><td>连接 ≥ 3 个逐步下降的高点</td><td>斜率、角度、方程</td></tr>
+        <tr><td>通道线</td><td>趋势线 + 平行线</td><td>上轨、下轨</td></tr>
+    </tbody>
+</table>
+
+<h3>2.3 技术指标参数</h3>
+
+<table class="warning">
+    <thead>
+        <tr><th>指标</th><th>参数配置</th><th>周期</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>MA5</td><td>短期均线</td><td>5</td></tr>
+        <tr><td>MA10</td><td>短期均线</td><td>10</td></tr>
+        <tr><td>MA20</td><td>中期均线</td><td>20</td></tr>
+        <tr><td>MA60</td><td>长期均线</td><td>60</td></tr>
+        <tr><td>MACD</td><td>12, 26, 9</td><td>快线/慢线/信号线</td></tr>
+        <tr><td>RSI</td><td>14</td><td>超买超卖</td></tr>
+        <tr><td>布林带</td><td>20, 2</td><td>周期/标准差倍数</td></tr>
+    </tbody>
+</table>
+
+<h3>2.4 形态识别规则</h3>
+
+<table class="danger">
+    <thead>
+        <tr><th>形态</th><th>条件</th><th>信号</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Pin Bar</strong></td>
+            <td>影线 ≥ 实体2倍，出现在关键位</td>
+            <td>反转信号</td>
+        </tr>
+        <tr>
+            <td><strong>吞没形态</strong></td>
+            <td>后一根K线实体完全包裹前一根</td>
+            <td>反转信号</td>
+        </tr>
+        <tr>
+            <td><strong>锤子线</strong></td>
+            <td>下影线 ≥ 实体2倍，在下跌后</td>
+            <td>底部反转</td>
+        </tr>
+        <tr>
+            <td><strong>黄昏星</strong></td>
+            <td>三根K线组合，出现在上升后</td>
+            <td>顶部反转</td>
+        </tr>
+        <tr>
+            <td><strong>十字星</strong></td>
+            <td>开盘≈收盘，影线较短</td>
+            <td>犹豫/中继</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>3. 信号生成模块 (Signal Generator)</h2>
+
+<h3>3.1 信号类型</h3>
+
+<table class="purple">
+    <thead>
+        <tr><th>信号类型</th><th>说明</th><th>优先级</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>BREAKOUT</td><td>突破支撑/阻力</td><td>高</td></tr>
+        <tr><td>BREAKDOWN</td><td>跌破支撑</td><td>高</td></tr>
+        <tr><td>PATTERN</td><td>形态识别信号</td><td>中</td></tr>
+        <tr><td>CROSS</td><td>均线金叉/死叉</td><td>中</td></tr>
+        <tr><td>OVERBOUGHT</td><td>RSI超买</td><td>低</td></tr>
+        <tr><td>OVERSOLD</td><td>RSI超卖</td><td>低</td></tr>
+    </tbody>
+</table>
+
+<h3>3.2 信号结构</h3>
+
+<pre><code>Signal {
+    type: str              # 信号类型
+    direction: str         # "long" / "short" / "neutral"
+    strength: int          # 强度 1-5
+    price: float           # 触发价格
+    target: float          # 目标价格
+    stop_loss: float       # 止损价格
+    pattern_name: str       # 形态名称(如有)
+    timestamp: datetime    # 信号时间
+    metadata: dict         # 附加信息
+}</code></pre>
+
+<h3>3.3 信号确认规则</h3>
+
+<div class="note-box">
+    <p style="margin: 0; font-size: 13px;">信号需要满足以下条件才会输出：</p>
+    <ol style="margin: 8px 0 0 0; font-size: 13px;">
+        <li>突破需收盘价确认（非仅日内突破）</li>
+        <li>成交量放大 ≥ 1.2倍均量</li>
+        <li>形态信号需出现在关键支撑/阻力位</li>
+        <li>RSI信号需结合趋势方向</li>
+    </ol>
+</div>
+
+<h2>4. UI模块设计</h2>
+
+<h3>4.1 页面结构</h3>
+
+<div class="layout-grid" style="grid-template-columns: 250px 1fr;">
+    <div class="purple-box" style="padding: 12px;">
+        <h4 style="margin: 0 0 8px 0; color: #6f42c1;">侧边栏 (Sidebar)</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li>自选股列表</li>
+            <li>添加股票输入框</li>
+            <li>市场选择(沪深/创业板)</li>
+            <li>刷新按钮</li>
+        </ul>
+    </div>
+    <div class="info-box">
+        <h4 style="margin: 0 0 8px 0; color: #0c5460;">主区域 (Main)</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li>K线图表 (Plotly)</li>
+            <li>技术指标副图</li>
+            <li>分析信号面板</li>
+            <li>标的切换标签</li>
+        </ul>
+    </div>
+</div>
+
+<h3>4.2 图表规格</h3>
+
+<table class="success">
+    <thead>
+        <tr><th>图表层</th><th>内容</th><th>高度占比</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>主图</td><td>K线 + MA5/10/20 + 布林带</td><td>60%</td></tr>
+        <tr><td>副图1</td><td>MACD (12/26/9)</td><td>15%</td></tr>
+        <tr><td>副图2</td><td>RSI (14)</td><td>12%</td></tr>
+        <tr><td>副图3</td><td>成交量柱状图</td><td>13%</td></tr>
+    </tbody>
+</table>
+
+<h3>4.3 交互组件</h3>
+
+<table class="info">
+    <thead>
+        <tr><th>组件</th><th>类型</th><th>功能</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>stock_selector</td><td>dropdown</td><td>选择自选股</td></tr>
+        <tr><td>period_selector</td><td>radio</td><td>切换 日线/周线/月线</td></tr>
+        <tr><td>indicator_toggle</td><td>multiselect</td><td>显示/隐藏指标</td></tr>
+        <tr><td>refresh_button</td><td>button</td><td>手动刷新数据</td></tr>
+        <tr><td>signal_filter</td><td>checkbox</td><td>过滤信号类型</td></tr>
+    </tbody>
+</table>
+
+<h2>5. 模块间接口</h2>
+
+<h3>5.1 DataService 接口</h3>
+
+<pre><code>class DataService:
+    def get_quote(code: str) -> Quote:
+        """获取单只股票实时行情"""
+        
+    def get_kline(code: str, period: str, count: int) -> List[Kline]:
+        """获取K线数据
+        period: '1d', '1w', '1m'
+        count: 获取数量
+        """
+        
+    def get_realtime_quotes(codes: List[str]) -> List[Quote]:
+        """批量获取实时行情"""
+        
+    def get_intraday(code: str) -> DataFrame:
+        """获取分时数据"""
+</code></pre>
+
+<h3>5.2 AnalysisEngine 接口</h3>
+
+<pre><code>class AnalysisEngine:
+    def analyze(klines: List[Kline]) -> AnalysisResult:
+        """综合分析"""
+        
+    def find_support_resistance(klines: List[Kline]) -> SupportResistance:
+        """支撑阻力位"""
+        
+    def detect_trendlines(klines: List[Kline]) -> List[Trendline]:
+        """趋势线"""
+        
+    def calculate_indicators(klines: List[Kline]) -> Indicators:
+        """技术指标"""
+        
+    def recognize_patterns(klines: List[Kline]) -> List[Pattern]:
+        """形态识别"""
+</code></pre>
+
+<h3>5.3 SignalGenerator 接口</h3>
+
+<pre><code>class SignalGenerator:
+    def generate(analysis: AnalysisResult) -> List[Signal]:
+        """生成信号"""
+        
+    def filter_signals(signals: List[Signal], 
+                       signal_types: List[str]) -> List[Signal]:
+        """过滤信号"""
+        
+    def get_latest_signals(code: str, count: int) -> List[Signal]:
+        """获取最新信号"""
+</code></pre>
+
+<h2>6. 项目文件结构</h2>
+
+<div class="purple-box">
+    <h4 style="margin: 0 0 8px 0; color: #6f42c1;">完整项目结构</h4>
+    <p style="margin: 0; font-size: 13px;"><code>src/</code> <code>config/</code> <code>data/</code> <code>tests/</code> <code>requirements.txt</code> <code>main.py</code></p>
+</div>
+
+<table class="purple">
+    <thead>
+        <tr><th>目录/文件</th><th>内容</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>src/data/</code></td><td>
+            <code>__init__.py</code> <code>akshare_client.py</code> <code>data_cache.py</code> <code>models.py</code>
+        </td></tr>
+        <tr><td><code>src/analysis/</code></td><td>
+            <code>__init__.py</code> <code>price_action.py</code> <code>indicators.py</code> <code>patterns.py</code> <code>signal_generator.py</code>
+        </td></tr>
+        <tr><td><code>src/ui/</code></td><td>
+            <code>__init__.py</code> <code>dashboard.py</code> <code>chart.py</code> <code>sidebar.py</code> <code>components.py</code>
+        </td></tr>
+        <tr><td><code>src/utils/</code></td><td>
+            <code>__init__.py</code> <code>helpers.py</code> <code>logger.py</code> <code>config.py</code>
+        </td></tr>
+        <tr><td><code>config/</code></td><td>
+            自选股列表 <code>stocks.json</code> <code>settings.yaml</code>
+        </td></tr>
+        <tr><td><code>data/cache/</code></td><td>
+            K线缓存文件 <code>{code}_{period}.parquet</code>
+        </td></tr>
+    </tbody>
+</table>
+
+<h2>7. 依赖库清单</h2>
+
+<table class="info">
+    <thead>
+        <tr><th>库</th><th>版本</th><th>用途</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>streamlit</td><td>≥1.28</td><td>Web仪表盘框架</td></tr>
+        <tr><td>pandas</td><td>最新</td><td>数据处理</td></tr>
+        <tr><td>pandas-ta</td><td>最新</td><td>技术指标计算</td></tr>
+        <tr><td>akshare</td><td>最新</td><td>A股数据源</td></tr>
+        <tr><td>plotly</td><td>最新</td><td>K线图表渲染</td></tr>
+        <tr><td>requests</td><td>最新</td><td>HTTP请求</td></tr>
+        <tr><td>pyarrow</td><td>最新</td><td>Parquet缓存格式</td></tr>
+    </tbody>
+</table>
+
+<h2>8. 错误处理策略</h2>
+
+<table class="warning">
+    <thead>
+        <tr><th>错误类型</th><th>处理策略</th><th>降级方案</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>网络超时</td><td>重试3次，间隔2秒</td><td>返回缓存数据</td></tr>
+        <tr><td>数据源不可用</td><td>切换备用数据源</td><td>显示"数据延迟"</td></tr>
+        <tr><td>股票代码无效</td><td>返回空数据</td><td>提示"股票不存在"</td></tr>
+        <tr><td>API频率限制</td><td>退避等待</td><td>使用缓存数据</td></tr>
+    </tbody>
+</table>
+
+<h2>9. AKShare API 详解</h2>
+
+<h3>9.1 核心接口函数</h3>
+
+<table class="info">
+    <thead>
+        <tr><th>函数</th><th>用途</th><th>返回值</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>ak.stock_zh_a_spot_em()</code></td>
+            <td>获取A股全量实时行情</td>
+            <td>DataFrame: 代码/名称/现价/涨跌幅/成交量/最高/最低...</td>
+        </tr>
+        <tr>
+            <td><code>ak.stock_zh_a_hist()</code></td>
+            <td>获取K线历史数据</td>
+            <td>DataFrame: 日期/开盘/最高/最低/收盘/成交量</td>
+        </tr>
+        <tr>
+            <td><code>ak.stock_zh_a_minute()</code></td>
+            <td>获取分时数据</td>
+            <td>DataFrame: 时间/价格/成交量</td>
+        </tr>
+        <tr>
+            <td><code>ak.stock_individual_info_em()</code></td>
+            <td>获取个股基本信息</td>
+            <td>DataFrame: 股票代码/总市值/流通市值/市盈率...</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>9.2 K线获取示例</h3>
+
+<div class="info-box">
+    <pre><code>import akshare as ak
+import pandas as pd
+
+# 获取日K线数据 (前复权)
+df = ak.stock_zh_a_hist(
+    symbol="000001",      # 股票代码
+    period="daily",        # 日线
+    start_date="20230101", # 开始日期
+    end_date="20260604",   # 结束日期
+    adjust="qfq"           # 前复权
+)
+
+# 返回列: 日期, 开盘, 收盘, 最高, 最低, 成交量, 成交额, 振幅, 涨跌幅, 涨跌额,换手率
+print(df.head())</code></pre>
+</div>
+
+<h3>9.3 数据字段映射</h3>
+
+<table class="success">
+    <thead>
+        <tr><th>AKShare返回字段</th><th>映射到Kline模型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>日期</td><td>timestamp</td><td>转换为datetime</td></tr>
+        <tr><td>开盘</td><td>open</td><td>开盘价</td></tr>
+        <tr><td>最高</td><td>high</td><td>最高价</td></tr>
+        <tr><td>最低</td><td>low</td><td>最低价</td></tr>
+        <tr><td>收盘</td><td>close</td><td>收盘价</td></tr>
+        <tr><td>成交量</td><td>volume</td><td>成交量(手)</td></tr>
+    </tbody>
+</table>
+
+<h2>10. 复权数据说明</h2>
+
+<div class="warning-box">
+    <h4 style="margin: 0 0 8px 0;">为什么需要复权？</h4>
+    <p style="margin: 0; font-size: 13px;">股票有分红、配送、增发等行为时，股价会产生跳空缺口。前复权/后复权可以消除这种缺口，使K线连续，方便技术分析。</p>
+</div>
+
+<table class="info">
+    <thead>
+        <tr><th>复权类型</th><th>参数值</th><th>特点</th><th>适用场景</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>前复权</strong></td>
+            <td><code>qfq</code></td>
+            <td>以最新价格为基准，历史价格向下调整</td>
+            <td>技术分析（推荐）</td>
+        </tr>
+        <tr>
+            <td><strong>后复权</strong></td>
+            <td><code>hfq</code></td>
+            <td>以原始价格为基准，最新价格向上调整</td>
+            <td>长期投资分析</td>
+        </tr>
+        <tr>
+            <td><strong>不复权</strong></td>
+            <td><code></code></td>
+            <td>保持原始价格，有跳空缺口</td>
+            <td>简单查看</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="note-box">
+    <p style="margin: 0; font-size: 13px;"><strong>本系统默认使用前复权(qfq)</strong>，因为技术指标计算需要连续的K线数据。</p>
+</div>
+
+<h2>11. 实时更新机制</h2>
+
+<h3>11.1 轮询策略</h3>
+
+<table class="purple">
+    <thead>
+        <tr><th>数据类别</th><th>轮询间隔</th><th>缓存TTL</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>实时行情</td><td>3-5秒</td><td>0秒</td><td>交易时段实时更新</td></tr>
+        <tr><td>分时数据</td><td>30秒</td><td>10秒</td><td>交易时段</td></tr>
+        <tr><td>K线数据</td><td>收盘后更新</td><td>1天</td><td>日K线不频繁变化</td></tr>
+    </tbody>
+</table>
+
+<h3>11.2 缓存失效策略</h3>
+
+<div class="layout-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="info-box">
+        <h4 style="margin: 0 0 8px 0; color: #0c5460;">缓存写入条件</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li>API请求成功返回数据</li>
+            <li>数据时间戳 > 缓存时间戳</li>
+            <li>数据量 ≥ 请求量</li>
+        </ul>
+    </div>
+    <div class="warning-box">
+        <h4 style="margin: 0 0 8px 0; color: #856404;">缓存失效条件</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li>超过TTL时间</li>
+            <li>收到错误响应</li>
+            <li>手动刷新触发</li>
+        </ul>
+    </div>
+</div>
+
+<h3>11.3 并发控制</h3>
+
+<table class="success">
+    <thead>
+        <tr><th>策略</th><th>参数</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>单股票请求</td><td>-</td><td>串行获取，避免频率限制</td></tr>
+        <tr><td>多股票请求</td><td><code>asyncio</code>并发</td><td>最多5个并发连接</td></tr>
+        <tr><td>重试机制</td><td>3次，间隔2秒</td><td>网络抖动时自动重试</td></tr>
+        <tr><td>退避策略</td><td>指数退避</td><td>触发限流时自动降频</td></tr>
+    </tbody>
+</table>
+
+<h2>12. 配置管理</h2>
+
+<h3>12.1 自选股配置 (stocks.json)</h3>
+
+<div class="info-box">
+    <pre><code>{
+  "watchlist": [
+    {"code": "000001", "name": "平安银行", "market": "sz"},
+    {"code": "600519", "name": "贵州茅台", "market": "sh"},
+    {"code": "300750", "name": "宁德时代", "market": "sz"},
+    {"code": "600036", "name": "招商银行", "market": "sh"},
+    {"code": "688981", "name": "中芯国际", "market": "sh"}
+  ],
+  "last_updated": "2026-06-04T10:30:00"
+}</code></pre>
+</div>
+
+<h3>12.2 系统配置 (settings.yaml)</h3>
+
+<table class="purple">
+    <thead>
+        <tr><th>配置项</th><th>默认值</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>refresh_interval</td><td>5</td><td>行情刷新间隔(秒)</td></tr>
+        <tr><td>cache_ttl</td><td>300</td><td>缓存有效期(秒)</td></tr>
+        <tr><td>max_concurrent</td><td>5</td><td>最大并发请求数</td></tr>
+        <tr><td>default_period</td><td>daily</td><td>默认K线周期</td></tr>
+        <tr><td>adjust_type</td><td>qfq</td><td>复权类型</td></tr>
+    </tbody>
+</table>
+
+<h3>12.3 配置加载流程</h3>
+
+<div class="success-box">
+    <ol style="margin: 0; font-size: 13px;">
+        <li>启动时读取 <code>config/stocks.json</code> 加载自选股列表</li>
+        <li>读取 <code>config/settings.yaml</code> 加载系统配置</li>
+        <li>用户修改自选股后，实时保存到 <code>stocks.json</code></li>
+        <li>配置变更自动生效，无需重启</li>
+    </ol>
+</div>
+
+<h2>13. 日志规范</h2>
+
+<h3>13.1 日志级别</h3>
+
+<table class="danger">
+    <thead>
+        <tr><th>级别</th><th>颜色</th><th>使用场景</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>DEBUG</td><td>灰色</td><td>调试信息，API请求/响应详情</td></tr>
+        <tr><td>INFO</td><td>白色</td><td>正常运行信息，数据更新/刷新</td></tr>
+        <tr><td>WARNING</td><td>黄色</td><td>警告信息，限流/缓存过期</td></tr>
+        <tr><td>ERROR</td><td>红色</td><td>错误信息，API失败/数据异常</td></tr>
+    </tbody>
+</table>
+
+<h3>13.2 日志格式</h3>
+
+<div class="info-box">
+    <pre><code>[2026-06-04 10:30:15] [INFO] [DataService] 获取股票 000001 行情成功
+[2026-06-04 10:30:15] [DEBUG] [DataService] API响应时间: 123ms
+[2026-06-04 10:30:16] [WARNING] [DataService] 股票 600519 请求限流，启用缓存
+[2026-06-04 10:30:17] [ERROR] [DataService] 股票 000001 API请求失败: timeout</code></pre>
+</div>
+
+<h3>13.3 日志输出</h3>
+
+<table class="success">
+    <thead>
+        <tr><th>环境</th><th>输出目标</th><th>日志文件</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>开发环境</td><td>控制台</td><td>-</td></tr>
+        <tr><td>生产环境</td><td>文件 + 控制台</td><td><code>logs/app_{date}.log</code></td></tr>
+    </tbody>
+</table>
+
+<h2>14. Streamlit 页面结构</h2>
+
+<h3>14.1 页面布局</h3>
+
+<div class="layout-grid" style="grid-template-columns: 250px 1fr;">
+    <div class="purple-box" style="padding: 12px;">
+        <h4 style="margin: 0 0 10px 0; color: #6f42c1;">st.sidebar 侧边栏</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li><strong>自选股列表</strong><br><code>st.selectbox</code></li>
+            <li><strong>添加股票</strong><br><code>st.text_input + st.button</code></li>
+            <li><strong>K线周期</strong><br><code>st.radio</code></li>
+            <li><strong>刷新控制</strong><br><code>st.checkbox</code>自动刷新</li>
+        </ul>
+    </div>
+    <div class="info-box">
+        <h4 style="margin: 0 0 10px 0; color: #0c5460;">st.main_content 主区域</h4>
+        <ul style="margin: 0; font-size: 13px;">
+            <li><strong>标题栏</strong><br>股票名称 + 当前价 + 涨跌幅</li>
+            <li><strong>K线图表</strong><br><code>st.plotly_chart</code></li>
+            <li><strong>技术指标</strong><br>MACD/RSI/成交量副图</li>
+            <li><strong>分析面板</strong><br>支撑阻力/趋势/信号</li>
+        </ul>
+    </div>
+</div>
+
+<h3>14.2 Streamlit 核心组件</h3>
+
+<table class="warning">
+    <thead>
+        <tr><th>组件</th><th>Streamlit API</th><th>用途</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>页面配置</td><td><code>st.set_page_config()</code></td><td>页面标题/布局/图标</td></tr>
+        <tr><td>侧边栏</td><td><code>st.sidebar</code></td><td>侧边导航控件</td></tr>
+        <tr><td>图表渲染</td><td><code>st.plotly_chart()</code></td><td>Plotly图表嵌入</td></tr>
+        <tr><td>缓存装饰器</td><td><code>@st.cache_data</code></td><td>数据缓存</td></tr>
+        <tr><td>自动刷新</td><td><code>st.autorefresh()</code></td><td>定时刷新组件</td></tr>
+    </tbody>
+</table>
+
+<h3>14.3 状态管理</h3>
+
+<div class="success-box">
+    <pre><code># Streamlit状态变量 (session_state)
+if 'selected_stock' not in st.session_state:
+    st.session_state.selected_stock = "000001"  # 默认股票
+
+if 'watchlist' not in st.session_state:
+    st.session_state.watchlist = load_stocks()   # 加载自选股
+
+if 'refresh_interval' not in st.session_state:
+    st.session_state.refresh_interval = 5        # 刷新间隔</code></pre>
+</div>
+
+<div class="footer">
+    <p>版本: v1.0 | 创建时间: 2026-06-04 | 状态: 详细设计完成</p>
+</div>
+
+</body>
+</html>

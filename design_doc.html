@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股价格行为分析系统设计</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; 
+            max-width: 1300px; 
+            margin: 0 auto; 
+            padding: 30px 20px; 
+            line-height: 1.7; 
+            color: #333;
+            background: #fafbfc;
+        }
+        h1 { 
+            color: #1a1a2e; 
+            border-bottom: 3px solid #16213e; 
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+            font-size: 26px;
+        }
+        h2 { 
+            color: #16213e; 
+            border-left: 5px solid #0f3460; 
+            padding-left: 15px; 
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        h3 { 
+            color: #0f3460; 
+            margin-top: 20px;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        h4 { 
+            color: #1a1a2e; 
+            margin: 0 0 10px 0;
+            font-size: 15px;
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 15px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td { 
+            border: 1px solid #e0e0e0; 
+            padding: 10px 12px; 
+            text-align: left; 
+            font-size: 14px;
+        }
+        th { 
+            background-color: #0f3460; 
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #f0f4ff; }
+        
+        /* 彩色表格样式 */
+        table.info { border-left: 4px solid #17a2b8; }
+        table.info th { background-color: #17a2b8; }
+        table.success { border-left: 4px solid #28a745; }
+        table.success th { background-color: #28a745; }
+        table.warning { border-left: 4px solid #ffc107; }
+        table.warning th { background-color: #ffc107; }
+        table.danger { border-left: 4px solid #dc3545; }
+        table.danger th { background-color: #dc3545; }
+        table.purple { border-left: 4px solid #6f42c1; }
+        table.purple th { background-color: #6f42c1; }
+        
+        .architecture-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .layer-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+        }
+        .layer-box.light {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .layer-box.green {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .layer-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .component {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        code { 
+            background: #f4f4f4; 
+            padding: 2px 6px; 
+            border-radius: 3px; 
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 12px;
+        }
+        pre {
+            background: #f8f8f8;
+            color: #333;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 13px;
+            border: 1px solid #e0e0e0;
+        }
+        .phase-card { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            border-left: 4px solid #0f3460;
+        }
+        .note-box { 
+            background: #fff3cd; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border-left: 4px solid #ffc107; 
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .info-box {
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            margin: 15px 0;
+        }
+        .purple-box {
+            background: #e2d9f3;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #6f42c1;
+            margin: 15px 0;
+        }
+        
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .sidebar {
+            background: #495057;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .main-area {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        .stock-item {
+            background: rgba(255,255,255,0.15);
+            padding: 8px 12px;
+            margin: 6px 0;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        .chart-placeholder {
+            background: linear-gradient(45deg, #f5f5f5 25%, transparent 25%, transparent 75%, #f5f5f5 75%, #f5f5f5),
+                        linear-gradient(45deg, #f5f5f5 25%, transparent 25%, transparent 75%, #f5f5f5 75%, #f5f5f5);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            height: 200px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .signal-panel {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .signal-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #d0e8f2;
+            font-size: 13px;
+        }
+        .signal-item:last-child { border-bottom: none; }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        ul { padding-left: 20px; margin: 5px 0; }
+        li { margin: 5px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<h1>A股价格行为分析系统设计</h1>
+
+<h2>1. 系统概述</h2>
+
+<div class="success-box">
+    <h3 style="margin-top: 0;">目标</h3>
+    <p>基于价格行为学（Price Action）分析A股标的，提供可视化的技术分析仪表盘</p>
+</div>
+
+<div class="info-box">
+    <h3 style="margin-top: 0;">核心功能</h3>
+    <ul style="margin: 5px 0;">
+        <li>实时/准实时行情展示</li>
+        <li>价格行为信号识别（支撑阻力、趋势线、形态）</li>
+        <li>技术指标计算</li>
+        <li>多标的监控与切换</li>
+    </ul>
+</div>
+
+<h2>2. 系统架构</h2>
+
+<div class="architecture-diagram">
+    
+    <div class="layer-box">
+        <div class="layer-title">用户交互层 (Streamlit)</div>
+        <div class="components">
+            <div class="component">标的列表（自选股）</div>
+            <div class="component">K线图表（Plotly）</div>
+            <div class="component">分析面板（信号/指标/建议）</div>
+        </div>
+    </div>
+    
+    <div class="layer-box light">
+        <div class="layer-title">业务逻辑层 (Python)</div>
+        <div class="components">
+            <div class="component">数据服务 (DataService)</div>
+            <div class="component">分析引擎 (AnalysisEngine)</div>
+            <div class="component">信号生成器 (SignalGenerator)</div>
+        </div>
+    </div>
+    
+    <div class="layer-box green">
+        <div class="layer-title">数据源层</div>
+        <div class="components">
+            <div class="component">AKShare（免费/实时）</div>
+            <div class="component">东方财富（实时行情）</div>
+            <div class="component">Tushare（财务数据）</div>
+        </div>
+    </div>
+    
+</div>
+
+<h2>3. 数据源设计</h2>
+
+<div class="purple-box">
+    <h3 style="margin-top: 0;">数据源概览</h3>
+    <p style="margin: 5px 0;">A股实时行情 · 历史K线数据 · 分时数据 · 财务数据</p>
+</div>
+
+<table class="info">
+    <thead>
+        <tr>
+            <th>市场</th>
+            <th>数据源</th>
+            <th>数据类型</th>
+            <th>更新频率</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>A股</td>
+            <td>AKShare</td>
+            <td>实时行情/历史K线/分时</td>
+            <td>实时 (~3秒)</td>
+        </tr>
+        <tr>
+            <td>备份</td>
+            <td>东方财富</td>
+            <td>实时行情</td>
+            <td>实时</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>数据模型</h3>
+
+<div class="layout-grid" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+    <div class="info-box">
+        <h4 style="margin: 0 0 8px 0;">Kline（K线数据）</h4>
+        <p style="margin: 0; font-size: 13px;"><code>code</code> <code>name</code> <code>timestamp</code> <code>open</code> <code>high</code> <code>low</code> <code>close</code> <code>volume</code></p>
+    </div>
+    <div class="purple-box">
+        <h4 style="margin: 0 0 8px 0;">Quote（实时行情）</h4>
+        <p style="margin: 0; font-size: 13px;"><code>code</code> <code>name</code> <code>price</code> <code>change_pct</code> <code>volume</code> <code>high</code> <code>low</code></p>
+    </div>
+</div>
+
+<h2>4. 分析引擎设计</h2>
+
+<h3>4.1 价格行为分析模块</h3>
+
+<table class="success">
+    <thead>
+        <tr>
+            <th>分析项</th>
+            <th>算法</th>
+            <th>输出</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>支撑位</td>
+            <td>局部最低点识别 + 成交量确认</td>
+            <td>价格列表</td>
+        </tr>
+        <tr>
+            <td>阻力位</td>
+            <td>局部最高点识别 + 成交量确认</td>
+            <td>价格列表</td>
+        </tr>
+        <tr>
+            <td>趋势线</td>
+            <td>连接显著高低点</td>
+            <td>斜率 + 角度</td>
+        </tr>
+        <tr>
+            <td>突破信号</td>
+            <td>收盘价穿越支撑/阻力</td>
+            <td>信号列表</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>4.2 技术指标模块</h3>
+
+<table class="warning">
+    <thead>
+        <tr>
+            <th>指标</th>
+            <th>用途</th>
+            <th>参数</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>MA</td>
+            <td>移动平均线</td>
+            <td>5/10/20/60</td>
+        </tr>
+        <tr>
+            <td>MACD</td>
+            <td>趋势判断</td>
+            <td>12/26/9</td>
+        </tr>
+        <tr>
+            <td>RSI</td>
+            <td>超买超卖</td>
+            <td>14周期</td>
+        </tr>
+        <tr>
+            <td>布林带</td>
+            <td>波动率/压力位</td>
+            <td>20/2</td>
+        </tr>
+        <tr>
+            <td>成交量</td>
+            <td>资金流向</td>
+            <td>-</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>4.3 形态识别模块</h3>
+
+<table class="danger">
+    <thead>
+        <tr>
+            <th>形态</th>
+            <th>类型</th>
+            <th>信号</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Pin Bar</td>
+            <td>反转</td>
+            <td>看涨/看跌</td>
+        </tr>
+        <tr>
+            <td>吞没形态</td>
+            <td>反转</td>
+            <td>看涨/看跌</td>
+        </tr>
+        <tr>
+            <td>锤子线</td>
+            <td>底部</td>
+            <td>看涨</td>
+        </tr>
+        <tr>
+            <td>黄昏星</td>
+            <td>顶部</td>
+            <td>看跌</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>5. 仪表盘设计</h2>
+
+<h3>5.1 页面布局</h3>
+
+<div class="layout-grid">
+    <div class="purple-box" style="padding: 15px;">
+        <h4 style="margin-top: 0; color: #6f42c1;">标的列表</h4>
+        <div class="stock-item">平安银行 (000001)</div>
+        <div class="stock-item">贵州茅台 (600519)</div>
+        <div class="stock-item">宁德时代 (300750)</div>
+        <div class="stock-item">招商银行 (600036)</div>
+        <hr style="margin: 15px 0; border-color: rgba(111,66,193,0.3);">
+        <h4 style="color: #6f42c1;">添加自选股</h4>
+        <div style="background: rgba(255,255,255,0.5); padding: 8px; border-radius: 5px;">
+            <small>输入框 + 按钮</small>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <h4 style="margin-top: 0; color: #0c5460;">K线图表区域</h4>
+        <div class="chart-placeholder">
+            主图: K线 + MA + 布林带 | 副图: MACD/RSI/成交量
+        </div>
+        <div class="signal-panel" style="margin-top: 15px;">
+            <h4 style="margin-top: 0; color: #0c5460;">分析信号面板</h4>
+            <div class="signal-item">
+                <strong>支撑位:</strong> 12.35 / 12.18
+            </div>
+            <div class="signal-item">
+                <strong>阻力位:</strong> 12.88 / 13.05
+            </div>
+            <div class="signal-item">
+                <strong>趋势:</strong> 上升 (45°倾斜)
+            </div>
+            <div class="signal-item">
+                <strong>信号:</strong> 突破阻力 + 放量确认
+            </div>
+            <div class="signal-item">
+                <strong>形态:</strong> 锤子线 (看涨)
+            </div>
+            <div class="signal-item">
+                <strong>综合建议:</strong> 关注回踩支撑后的买入机会
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3>5.2 交互流程</h3>
+
+<div class="note-box">
+    <ol style="margin: 5px 0;">
+        <li>用户添加自选股 → 存入配置文件</li>
+        <li>点击标的 → 加载K线数据 → 执行分析 → 渲染图表</li>
+        <li>定时刷新 → 更新行情和分析信号</li>
+    </ol>
+</div>
+
+<h2>6. 模块划分</h2>
+
+<div class="success-box" style="margin-bottom: 15px;">
+    <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #155724;">项目结构</h4>
+    <p style="margin: 0; font-size: 13px;"><code>main.py</code> <code>config.py</code> <code>data/</code> <code>analysis/</code> <code>ui/</code> <code>utils/</code></p>
+</div>
+
+<table class="purple" style="margin: 10px 0;">
+    <tr><th>模块</th><th>文件</th><th>说明</th></tr>
+    <tr><td>根目录</td><td><code>main.py</code> <code>config.py</code></td><td>入口/配置</td></tr>
+    <tr><td>data/</td><td><code>akshare_client.py</code> <code>data_cache.py</code></td><td>数据采集/缓存</td></tr>
+    <tr><td>analysis/</td><td><code>price_action.py</code> <code>indicators.py</code> <code>patterns.py</code> <code>signal_generator.py</code></td><td>分析引擎</td></tr>
+    <tr><td>ui/</td><td><code>dashboard.py</code> <code>chart.py</code> <code>sidebar.py</code></td><td>界面组件</td></tr>
+    <tr><td>utils/</td><td><code>helpers.py</code></td><td>工具函数</td></tr>
+</table>
+
+<h2>7. 开发计划</h2>
+
+<div class="layout-grid" style="grid-template-columns: repeat(4, 1fr); gap: 12px;">
+    <div class="info-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #0c5460;">Phase 1</h4>
+        <p style="margin: 0; font-size: 13px;"><strong>内容:</strong> 项目框架 + 数据采集</p>
+        <p style="margin: 5px 0 0 0; font-size: 13px;"><strong>交付物:</strong> 可运行的行情展示</p>
+    </div>
+    <div class="warning-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #856404;">Phase 2</h4>
+        <p style="margin: 0; font-size: 13px;"><strong>内容:</strong> 技术指标计算</p>
+        <p style="margin: 5px 0 0 0; font-size: 13px;"><strong>交付物:</strong> K线图+指标副图</p>
+    </div>
+    <div class="success-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #155724;">Phase 3</h4>
+        <p style="margin: 0; font-size: 13px;"><strong>内容:</strong> 价格行为分析</p>
+        <p style="margin: 5px 0 0 0; font-size: 13px;"><strong>交付物:</strong> 支撑阻力/趋势线</p>
+    </div>
+    <div class="purple-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #6f42c1;">Phase 4</h4>
+        <p style="margin: 0; font-size: 13px;"><strong>内容:</strong> 形态识别 + 信号</p>
+        <p style="margin: 5px 0 0 0; font-size: 13px;"><strong>交付物:</strong> 综合分析面板</p>
+    </div>
+</div>
+
+<h2>8. 技术栈与依赖</h2>
+
+<table class="info" style="margin: 10px 0;">
+    <tr><th>类别</th><th>技术</th></tr>
+    <tr><td>Web框架</td><td><code>streamlit>=1.28</code></td></tr>
+    <tr><td>数据处理</td><td><code>pandas</code> <code>pandas-ta</code></td></tr>
+    <tr><td>数据源</td><td><code>akshare</code></td></tr>
+    <tr><td>可视化</td><td><code>plotly</code></td></tr>
+    <tr><td>缓存</td><td>本地文件 <code>.parquet</code></td></tr>
+</table>
+
+<h2>9. 核心模块接口</h2>
+
+<div class="layout-grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px;">
+    <div class="info-box" style="margin: 0;">
+        <h4 style="margin: 0 0 6px 0; color: #0c5460;">DataService</h4>
+        <p style="margin: 0; font-size: 12px;"><code>get_quote(code)</code><br><code>get_kline(code,period,count)</code><br><code>get_realtime_quotes(codes)</code></p>
+    </div>
+    <div class="success-box" style="margin: 0;">
+        <h4 style="margin: 0 0 6px 0; color: #155724;">AnalysisEngine</h4>
+        <p style="margin: 0; font-size: 12px;"><code>find_support_resistance()</code><br><code>detect_trendlines()</code><br><code>calculate_indicators()</code><br><code>recognize_patterns()</code></p>
+    </div>
+    <div class="purple-box" style="margin: 0;">
+        <h4 style="margin: 0 0 6px 0; color: #6f42c1;">SignalGenerator</h4>
+        <p style="margin: 0; font-size: 12px;"><code>generate(analysis)</code><br><code>filter_signals()</code><br><code>get_latest_signals()</code></p>
+    </div>
+</div>
+
+<h2>10. 数据与缓存策略</h2>
+
+<div class="layout-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+    <div class="info-box" style="margin: 0;">
+        <h4 style="margin: 0 0 6px 0; color: #0c5460;">更新频率</h4>
+        <p style="margin: 0; font-size: 12px;">实时行情: 3-5秒<br>分时数据: 30秒<br>K线数据: 收盘后更新<br><strong>默认前复权(qfq)</strong></p>
+    </div>
+    <div class="warning-box" style="margin: 0;">
+        <h4 style="margin: 0 0 6px 0; color: #856404;">缓存策略</h4>
+        <p style="margin: 0; font-size: 12px;">TTL过期/错误降级/手动刷新<br>并发控制: 最多5连接<br>重试: 3次, 间隔2秒</p>
+    </div>
+</div>
+
+<h2>11. 附录：价格行为学核心准则</h2>
+
+<div class="note-box">
+    <h3 style="margin-top: 0;">价格行为学三大公理</h3>
+    <ol>
+        <li><strong>价格包含一切</strong> (Price discounts everything) - 所有已知信息已反映在价格中</li>
+        <li><strong>价格呈趋势运动</strong> (Prices move in trends) - 趋势有惯性，直到反转信号出现</li>
+        <li><strong>历史会重演</strong> (History repeats itself) - 人类心理不变，形态会重复</li>
+    </ol>
+</div>
+
+<div class="success-box">
+    <h3 style="margin-top: 0;">本系统覆盖的价格行为分析方法</h3>
+    <ul>
+        <li>✓ 支撑与阻力识别</li>
+        <li>✓ 趋势线绘制与分析</li>
+        <li>✓ 价格形态识别 (Pin Bar, 吞没, 锤子线, 黄昏星)</li>
+        <li>✓ 成交量确认分析</li>
+        <li>✓ 趋势结构分析 (Higher Highs / Higher Lows)</li>
+        <li>✓ 突破与假突破识别</li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <h3 style="margin-top: 0;">待扩展模块</h3>
+    <ul>
+        <li>○ 多 timeframe 分析 (日线/周线共振)</li>
+        <li>○ 市场结构转换识别 (BOS/CHOCH)</li>
+        <li>○ 订单块/流动性区域</li>
+        <li>○ 乖离率与回归分析</li>
+    </ul>
+</div>
+
+<div class="footer">
+    <p>生成时间: 2026-06-04 | 版本: v2.0</p>
+</div>
+
+</body>
+</html>

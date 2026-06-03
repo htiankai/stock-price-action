@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>价格行为分析系统 - 待办事项</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; 
+            max-width: 1300px; 
+            margin: 0 auto; 
+            padding: 30px 20px; 
+            line-height: 1.7; 
+            color: #333;
+            background: #fafbfc;
+        }
+        h1 { 
+            color: #1a1a2e; 
+            border-bottom: 3px solid #16213e; 
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+            font-size: 26px;
+        }
+        h2 { 
+            color: #16213e; 
+            border-left: 5px solid #0f3460; 
+            padding-left: 15px; 
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        h3 { 
+            color: #0f3460; 
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        h4 { color: #1a1a2e; margin-bottom: 8px; font-size: 14px; }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 10px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th, td { 
+            border: 1px solid #e0e0e0; 
+            padding: 8px 12px; 
+            text-align: left; 
+            font-size: 13px;
+        }
+        th { 
+            background-color: #0f3460; 
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #f0f4ff; }
+        
+        /* 彩色表格样式 */
+        table.info { border-left: 4px solid #17a2b8; }
+        table.info th { background-color: #17a2b8; }
+        table.success { border-left: 4px solid #28a745; }
+        table.success th { background-color: #28a745; }
+        table.warning { border-left: 4px solid #ffc107; }
+        table.warning th { background-color: #ffc107; }
+        table.danger { border-left: 4px solid #dc3545; }
+        table.danger th { background-color: #dc3545; }
+        table.purple { border-left: 4px solid #6f42c1; }
+        table.purple th { background-color: #6f42c1; }
+        code { 
+            background: #f4f4f4; 
+            padding: 2px 6px; 
+            border-radius: 3px; 
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 12px;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-size: 12px;
+        }
+        .phase-card { 
+            background: white; 
+            padding: 12px 15px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            border-left: 4px solid #0f3460;
+        }
+        .note-box { 
+            background: #fff3cd; 
+            padding: 12px 15px; 
+            border-radius: 8px; 
+            border-left: 4px solid #ffc107; 
+            margin: 12px 0;
+        }
+        .success-box {
+            background: #d4edda;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin: 12px 0;
+        }
+        .warning-box {
+            background: #f8d7da;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin: 12px 0;
+        }
+        .info-box {
+            background: #d1ecf1;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            margin: 12px 0;
+        }
+        .purple-box {
+            background: #e2d9f3;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #6f42c1;
+            margin: 12px 0;
+        }
+        .danger-box {
+            background: #f8d7da;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin: 12px 0;
+        }
+        .layout-grid {
+            display: grid;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .architecture-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .layer-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+        }
+        .layer-box.light {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .layer-box.green {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .layer-box.warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        .layer-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .component {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .priority-high { 
+            background: #ffebee; 
+            border-left: 4px solid #dc3545; 
+            padding: 10px 12px; 
+            border-radius: 6px; 
+            margin: 8px 0;
+        }
+        .priority-medium { 
+            background: #fff3cd; 
+            border-left: 4px solid #ffc107; 
+            padding: 10px 12px; 
+            border-radius: 6px; 
+            margin: 8px 0;
+        }
+        .priority-low { 
+            background: #d4edda; 
+            border-left: 4px solid #28a745; 
+            padding: 10px 12px; 
+            border-radius: 6px; 
+            margin: 8px 0;
+        }
+        .status-todo { color: #dc3545; font-weight: bold; }
+        .status-in-progress { color: #ffc107; font-weight: bold; }
+        .status-done { color: #28a745; font-weight: bold; }
+        .tag { 
+            display: inline-block; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .tag-price-action { background: #d1ecf1; color: #0c5460; }
+        .tag-architecture { background: #e2e3e5; color: #383d41; }
+        .tag-ui { background: #f8d7da; color: #721c24; }
+        .tag-done { background: #d4edda; color: #155724; }
+        .footer {
+            margin-top: 40px;
+            padding-top: 12px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 12px;
+        }
+        ul { padding-left: 18px; margin: 4px 0; }
+        li { margin: 3px 0; font-size: 13px; }
+        p { margin: 4px 0; }
+    </style>
+</head>
+<body>
+
+<h1>价格行为分析系统 - 待办事项</h1>
+
+<div class="info-box">
+    <h3 style="margin-top: 0;">项目概览</h3>
+    <p><strong>创建时间:</strong> 2026-06-04<br>
+    <strong>目标:</strong> 补充完整的价格行为学（Price Action）分析能力</p>
+</div>
+
+<h2>一、核心价格行为学方法（待补充）</h2>
+
+<div class="danger-box">
+    <h3 style="margin-top: 0;">🔴 高优先级</h3>
+    <table class="danger">
+        <thead>
+            <tr>
+                <th>事项</th>
+                <th>描述</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>多时间框架 (Multi-Timeframe) 分析</strong></td>
+                <td>
+                    - 支持日线、周线、小时线、分钟线等周期<br>
+                    - 大周期支撑阻力在小周期的共振分析<br>
+                    - 趋势方向确认（周线定方向，日线找点位）
+                </td>
+                <td class="status-todo">待办</td>
+            </tr>
+            <tr>
+                <td><strong>市场结构识别 (BOS/CHOCH)</strong></td>
+                <td>
+                    - Break of Structure (BOS)：结构突破<br>
+                    - Change of Character (CHOCH)：结构转换<br>
+                    - Higher Highs (HH) / Higher Lows (HL) / Lower Highs (LH) / Lower Lows (LL)
+                </td>
+                <td class="status-todo">待办</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="warning-box">
+    <h3 style="margin-top: 0;">🟡 中优先级</h3>
+    <table class="warning">
+        <thead>
+            <tr>
+                <th>事项</th>
+                <th>描述</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>订单块/流动性区域识别</strong></td>
+                <td>
+                    - 流动性区域（Liquidity Pool）识别<br>
+                    - 订单块（Order Block）定位<br>
+                    - 机构足迹分析
+                </td>
+                <td class="status-todo">待办</td>
+            </tr>
+            <tr>
+                <td><strong>K线内部结构分析</strong></td>
+                <td>
+                    - 影线比例分析（长上影/长下影）<br>
+                    - 实体大小与影线关系<br>
+                    - 收盘价位置分析
+                </td>
+                <td class="status-todo">待办</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="success-box">
+    <h3 style="margin-top: 0;">🟢 低优先级</h3>
+    <table class="success">
+        <thead>
+            <tr>
+                <th>事项</th>
+                <th>描述</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>乖离率与价格回归分析</strong></td>
+                <td>
+                    - 价格偏离 MA 的乖离率计算<br>
+                    - 回归概率评估<br>
+                    - 均值回归信号
+                </td>
+                <td class="status-todo">待办</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<h2>二、架构设计改进</h2>
+
+<table class="purple">
+    <thead>
+        <tr>
+            <th>模块</th>
+            <th>改进点</th>
+            <th>状态</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>数据层</td>
+            <td>
+                - 支持多周期数据并行获取<br>
+                - 增加多周期数据缓存机制
+            </td>
+            <td class="status-todo">待办</td>
+        </tr>
+        <tr>
+            <td>分析层</td>
+            <td>
+                - 新增 MarketStructure 类（结构识别）<br>
+                - 新增 MultiTimeframe 类（多周期分析）<br>
+                - 新增 OrderBlock 类（订单块）<br>
+                - 重构 PriceAction 类以支持新方法
+            </td>
+            <td class="status-todo">待办</td>
+        </tr>
+        <tr>
+            <td>UI层</td>
+            <td>
+                - 多周期切换器<br>
+                - 市场结构可视化（HH/HL/LH/LL标记）<br>
+                - 订单块高亮显示
+            </td>
+            <td class="status-todo">待办</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>三、实施路线图</h2>
+
+<div class="layout-grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px;">
+    <div class="info-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #0c5460;">Phase 1 - 核心框架</h4>
+        <p style="margin: 0; font-size: 13px;">架构设计 · 仪表盘基础 · 基础形态识别</p>
+    </div>
+    <div class="warning-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #856404;">Phase 2 - 价格行为学增强</h4>
+        <p style="margin: 0; font-size: 13px;">多时间框架分析 · 市场结构识别 · 结构可视化</p>
+    </div>
+    <div class="purple-box" style="margin: 0;">
+        <h4 style="margin: 0 0 8px 0; color: #6f42c1;">Phase 3 - 高级功能</h4>
+        <p style="margin: 0; font-size: 13px;">订单块/流动性 · K线微观结构 · 综合分析面板</p>
+    </div>
+</div>
+
+<h2>四、参考资料</h2>
+
+<div class="note-box">
+    <ul style="margin: 0; padding-left: 20px;">
+        <li>Smart Money Concepts (SMC) - ICT</li>
+        <li>Price Action Trading - Al Brooks</li>
+        <li>Technical Analysis of Stock Trends - Dow Theory</li>
+    </ul>
+</div>
+
+<div class="footer">
+    <p>创建时间: 2026-06-04 | 最后更新: 2026-06-04</p>
+</div>
+
+</body>
+</html>
