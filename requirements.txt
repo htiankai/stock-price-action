@@ -1,0 +1,7 @@
+streamlit>=1.28
+pandas
+pandas-ta
+akshare
+plotly
+requests
+pyyaml
