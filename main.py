@@ -1,8 +1,10 @@
 """
 Stock Price Action Analysis System
 主入口文件
+
+运行方式:
+    streamlit run main.py
 """
-import streamlit as st
 from src.ui.dashboard import main
 
 if __name__ == "__main__":
